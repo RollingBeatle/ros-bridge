@@ -82,7 +82,9 @@ class CarlaRosBridge(CompatibleNode):
 
         self.synchronous_mode_update_thread = None
         self.shutdown = Event()
-
+        self.client_socket = None
+        if self.parameters["verifai"]:
+            self.start_socket()
         self.carla_settings = carla_world.get_settings()
         if not self.parameters["passive"]:
             # workaround: settings can only applied within non-sync mode
@@ -112,7 +114,7 @@ class CarlaRosBridge(CompatibleNode):
         self.carla_control_queue = queue.Queue()
 
         # actor factory
-        self.actor_factory = ActorFactory(self, carla_world, self.sync_mode)
+        self.actor_factory = ActorFactory(self, carla_world, self.sync_mode, self.client_socket)
 
         # add world info
         self.world_info = WorldInfo(carla_world=self.carla_world, node=self)
@@ -378,14 +380,14 @@ class CarlaRosBridge(CompatibleNode):
         """
         Starts a socket connection to the synchronizer
         """
-        client_socket = socket.socket()
-        client_socket.connect((self.HOST_IP, self.PORT))
-        client_socket.recv(1024)
+        self.client_socket = socket.socket()
+        self.client_socket.connect((self.HOST_IP, self.PORT))
+        self.client_socket.recv(1024)
         print("Starting VerfAI connnection"+"--"*20)
         init_mssg = self.ROLE + ';' + self.ID
-        client_socket.send(init_mssg.encode())
+        self.client_socket.send(init_mssg.encode())
         print("Awaiting for response...")
-        client_socket.recv(1024) # Wait for a continue message
+        self.client_socket.recv(1024) # Wait for a continue message
         print("Connection stablished"+"--"*20)
 
 
