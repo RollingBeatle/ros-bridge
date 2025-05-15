@@ -28,6 +28,8 @@ from carla_msgs.msg import (
 )
 from std_msgs.msg import Bool  # pylint: disable=import-error
 from std_msgs.msg import ColorRGBA  # pylint: disable=import-error
+import socket
+import pickle
 
 
 class EgoVehicle(Vehicle):
@@ -36,7 +38,7 @@ class EgoVehicle(Vehicle):
     Vehicle implementation details for the ego vehicle
     """
 
-    def __init__(self, uid, name, parent, node, carla_actor, vehicle_control_applied_callback):
+    def __init__(self, uid, name, parent, node, carla_actor, vehicle_control_applied_callback, client_socket:socket=None):
         """
         Constructor
 
@@ -98,6 +100,8 @@ class EgoVehicle(Vehicle):
             self.get_topic_prefix() + "/enable_autopilot",
             self.enable_autopilot_updated,
             qos_profile=10)
+        self.broadcast_tracker = 0
+        self.client_socket = client_socket
 
     def get_marker_color(self):
         """
@@ -252,7 +256,17 @@ class EgoVehicle(Vehicle):
             vehicle_control.reverse = ros_vehicle_control.reverse
             vehicle_control.manual_gear_shift = ros_vehicle_control.manual_gear_shift
             vehicle_control.gear = ros_vehicle_control.gear
-            self.carla_actor.apply_control(vehicle_control)
+
+            if self.socket: self.broadcast_message_autoware(vehicle_control)
+
+            else: self.carla_actor.apply_control(vehicle_control)
+            """
+            This part keeps the car moving from the bridge, as currently
+            the control commands should arrive via VerifAI. To make this able
+            to connect to other kind of devices this should have the option to probably
+            recieve control commands through the socket. But maybe to make sure apollo needs 
+            to be checked.
+            """
             self._vehicle_control_applied_callback(self.get_id())
 
     def enable_autopilot_updated(self, enable_auto_pilot):
@@ -301,3 +315,17 @@ class EgoVehicle(Vehicle):
         """
         speed = math.sqrt(EgoVehicle.get_vehicle_speed_squared(carla_vehicle))
         return speed
+    
+    def broadcast_message_autoware(self, vehicle_control: VehicleControl):
+        #time.sleep(0.02)
+        data = {'hand_brake':vehicle_control.hand_brake,
+                        'brake':vehicle_control.brake,
+                        'steer':vehicle_control.steer,
+                        'throttle':vehicle_control.throttle,
+                        'reverse':vehicle_control.reverse,
+                        'manual_gear_shift':vehicle_control.manual_gear_shift,
+                        'gear':vehicle_control.gear,
+                        'tracking_num': self.broadcast_tracker}
+        self.broadcast_tracker +=1
+        data_socket = pickle.dumps(data)
+        self.client_socket.send(data_socket)

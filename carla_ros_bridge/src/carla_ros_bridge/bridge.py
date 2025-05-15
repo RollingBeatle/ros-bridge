@@ -374,6 +374,7 @@ class CarlaRosBridge(CompatibleNode):
             self.actor_factory.destroy_actor(uid)
         self.actor_factory.update_available_objects()
         self.actor_factory.clear()
+        self.client_socket.close()
         super(CarlaRosBridge, self).destroy()
     
     def start_socket(self, client_socket:socket=None):

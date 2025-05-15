@@ -60,7 +60,7 @@ class ActorFactory(object):
         SPAWN_PSEUDO_ACTOR = 1
         DESTROY_ACTOR = 2
 
-    def __init__(self, node, world, sync_mode=False):
+    def __init__(self, node, world, sync_mode=False, client_socket=None):
         self.node = node
         self.world = world
         self.blueprint_lib = self.world.get_blueprint_library()
@@ -80,6 +80,7 @@ class ActorFactory(object):
         self.id_gen = itertools.count(10000)
 
         self.thread = Thread(target=self._update_thread)
+        self.client_socket = client_socket
 
     def start(self):
         # create initially existing actors
@@ -361,7 +362,7 @@ class ActorFactory(object):
                     in self.node.parameters['ego_vehicle']['role_name']:
                 actor = EgoVehicle(
                     uid, name, parent, self.node, carla_actor,
-                    self.node._ego_vehicle_control_applied_callback)
+                    self.node._ego_vehicle_control_applied_callback, self.client_socket)
             else:
                 actor = Vehicle(uid, name, parent, self.node, carla_actor)
         elif carla_actor.type_id.startswith("sensor"):
