@@ -37,6 +37,8 @@ from carla_ros_bridge.world_info import WorldInfo
 from carla_msgs.msg import CarlaControl, CarlaWeatherParameters
 from carla_msgs.srv import SpawnObject, DestroyObject, GetBlueprints
 from rosgraph_msgs.msg import Clock
+import socket
+import json
 
 
 class CarlaRosBridge(CompatibleNode):
@@ -51,6 +53,10 @@ class CarlaRosBridge(CompatibleNode):
     # in synchronous mode, if synchronous_mode_wait_for_vehicle_control_command is True,
     # wait for this time until a next tick is triggered.
     VEHICLE_CONTROL_TIMEOUT = 1.
+    HOST_IP = "127.0.0.1"
+    PORT = 1234
+    ROLE = "AUTOWARE_SLAVE"
+    ID = "0"
 
     def __init__(self):
         """
@@ -367,6 +373,20 @@ class CarlaRosBridge(CompatibleNode):
         self.actor_factory.update_available_objects()
         self.actor_factory.clear()
         super(CarlaRosBridge, self).destroy()
+    
+    def start_socket(self, client_socket:socket=None):
+        """
+        Starts a socket connection to the synchronizer
+        """
+        client_socket = socket.socket()
+        client_socket.connect((self.HOST_IP, self.PORT))
+        client_socket.recv(1024)
+        print("Starting VerfAI connnection"+"--"*20)
+        init_mssg = self.ROLE + ';' + self.ID
+        client_socket.send(init_mssg.encode())
+        print("Awaiting for response...")
+        client_socket.recv(1024) # Wait for a continue message
+        print("Connection stablished"+"--"*20)
 
 
 def main(args=None):
