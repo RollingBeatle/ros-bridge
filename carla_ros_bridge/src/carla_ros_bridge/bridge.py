@@ -425,6 +425,7 @@ def main(args=None):
     role_name = carla_bridge.get_param('ego_vehicle_role_name',
                                        ["hero", "ego_vehicle", "hero1", "hero2", "hero3"])
     parameters["ego_vehicle"] = {"role_name": role_name}
+    parameters['verifai'] = carla_bridge.get_param('verifai', False)
 
     try:
         start_time = time.time()
